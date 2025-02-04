@@ -368,7 +368,7 @@ class ValidQNetwork(QNetwork):
         self.infer_valid_mask = infer_valid_mask
 
     def forward(self, obs):
-        logits = self.q_net(self.extract_features(obs))
+        logits = self.q_net(self.extract_features(obs, self.features_extractor))
         return valid_logits(logits, self.infer_valid_mask(obs))
 
 

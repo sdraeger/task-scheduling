@@ -15,7 +15,7 @@ from typing import Collection
 
 import numpy as np
 import pandas as pd
-from gym import spaces
+from gymnasium import spaces
 
 from task_scheduling import tasks as task_types
 from task_scheduling.base import RandomGeneratorMixin
@@ -31,7 +31,7 @@ class Base(RandomGeneratorMixin, ABC):
     cls_task : class
         Class for instantiating task objects.
     param_spaces : dict, optional
-        Mapping of parameter name strings to gym.spaces.Space objects
+        Mapping of parameter name strings to gymnasium.spaces.Space objects
     rng : int or RandomState or Generator, optional
         Random number generator seed or object.
 
@@ -113,7 +113,7 @@ class GenericIID(BaseIID):
     param_gen : callable
         Invoked with 'self' argument, for use as the '_param_gen' method.
     param_spaces : dict, optional
-        Mapping of parameter name strings to gym.spaces.Space objects
+        Mapping of parameter name strings to gymnasium.spaces.Space objects
     rng : int or RandomState or Generator, optional
         Random number generator seed or object.
 
@@ -308,7 +308,7 @@ class Fixed(Base, ABC):
     tasks : Collection of task_scheduling.tasks.Base
         Tasks.
     param_spaces : dict, optional
-        Mapping of parameter name strings to gym.spaces.Space objects
+        Mapping of parameter name strings to gymnasium.spaces.Space objects
     rng : int or RandomState or Generator, optional
         Random number generator seed or object.
 
@@ -404,7 +404,7 @@ class Dataset(Fixed):  # FIXME: inherit from `Base`??
     repeat : bool, optional
         Allow tasks to be yielded more than once.
     param_spaces : dict, optional
-        Mapping of parameter name strings to gym.spaces.Space objects
+        Mapping of parameter name strings to gymnasium.spaces.Space objects
     rng : int or RandomState or Generator, optional
         Random number generator seed or object.
 

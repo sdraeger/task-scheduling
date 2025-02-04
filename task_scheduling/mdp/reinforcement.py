@@ -7,7 +7,7 @@ from pathlib import Path
 import dill
 import numpy as np
 import torch as th
-from gym import spaces
+from gymnasium import spaces
 from stable_baselines3 import A2C, DQN, PPO
 from stable_baselines3.common.callbacks import EvalCallback
 from stable_baselines3.common.monitor import Monitor
@@ -112,6 +112,7 @@ class StableBaselinesScheduler(BaseLearningScheduler):
         n_gen_train = n_gen - n_gen_val
 
         total_timesteps = self.learn_params["max_epochs"] * n_gen_train * self.env.action_space.n
+        print(f"{total_timesteps = }")
 
         if n_gen_val > 0:
             problem_gen_val = self.env.problem_gen.split(n_gen_val, shuffle=True, repeat=True)
@@ -176,7 +177,7 @@ class MultiExtractor(BaseFeaturesExtractor):
 
     Parameters
     ----------
-    observation_space : gym.spaces.Space
+    observation_space : gymnasium.spaces.Space
     net_ch : nn.Module
     net_tasks: nn.Module
 
@@ -247,6 +248,79 @@ class MultiExtractor(BaseFeaturesExtractor):
         )
 
         return cls(observation_space, net_ch, net_tasks)
+
+
+class MlpExtractor(BaseFeaturesExtractor):
+    def __init__(self, observation_space: spaces.Dict, hidden_sizes_ch, hidden_sizes_tasks):
+        super().__init__(observation_space, features_dim=1)  # `features_dim` must be overridden
+
+        n_ch = observation_space["ch_avail"].shape[-1]
+        n_tasks, n_features = observation_space["tasks"].shape[-2:]
+
+        layer_sizes_ch = [n_ch, *hidden_sizes_ch]
+        self.net_ch = build_mlp(layer_sizes_ch, last_act=True)
+
+        layer_sizes_tasks = [n_tasks * n_features, *hidden_sizes_tasks]
+        # layer_sizes_tasks = [n_tasks * (1 + n_features), *hidden_sizes_tasks]
+        self.net_tasks = nn.Sequential(nn.Flatten(), *build_mlp(layer_sizes_tasks, last_act=True))
+
+        sample = observation_space.sample()
+        # workaround SB3 encoding
+        sample["seq"] = np.stack((sample["seq"], 1 - sample["seq"])).flatten(order="F")
+        sample = {key: th.tensor(sample[key]).float().unsqueeze(0) for key in sample}
+        with th.no_grad():
+            self._features_dim = self.forward(sample).shape[1]  # SB3's workaround
+
+    def forward(self, observations: dict):
+        c, s, t = observations.values()
+        t = t.permute(0, 2, 1)
+        # s = s[:, ::2]  # override SB3 one-hot encoding
+        # t = th.cat((t.permute(0, 2, 1), s.unsqueeze(1)), dim=1)
+        # # reshape task features, combine w/ sequence mask
+
+        c = self.net_ch(c)
+        t = self.net_tasks(t)
+
+        return th.cat((c, t), dim=-1)
+
+
+class CnnExtractor(BaseFeaturesExtractor):
+    def __init__(
+        self,
+        observation_space: spaces.Dict,
+        hidden_sizes_ch,
+        hidden_sizes_tasks,
+        kernel_sizes=2,
+        cnn_kwargs=None,
+    ):
+        super().__init__(observation_space, features_dim=1)  # `features_dim` must be overridden
+
+        n_ch = observation_space["ch_avail"].shape[-1]
+        n_features = observation_space["tasks"].shape[-1]
+
+        layer_sizes_ch = [n_ch, *hidden_sizes_ch]
+        self.net_ch = build_mlp(layer_sizes_ch, last_act=True)
+
+        layer_sizes_tasks = [n_features, *hidden_sizes_tasks]
+        # layer_sizes_tasks = [1 + n_features, *hidden_sizes_tasks]
+        if cnn_kwargs is None:
+            cnn_kwargs = {}
+        self.net_tasks = nn.Sequential(
+            *build_cnn(layer_sizes_tasks, kernel_sizes, last_act=True, **cnn_kwargs),
+            nn.Flatten(),
+        )
+
+    def forward(self, observations: dict):
+        c, s, t = observations.values()
+        t = t.permute(0, 2, 1)
+        # s = s[:, ::2]  # override SB3 one-hot encoding
+        # t = th.cat((t.permute(0, 2, 1), s.unsqueeze(1)), dim=1)
+        # # reshape task features, combine w/ sequence mask
+
+        c = self.net_ch(c)
+        t = self.net_tasks(t)
+
+        return th.cat((c, t), dim=-1)
 
 
 class ValidActorCriticPolicy(ActorCriticPolicy):

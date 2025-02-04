@@ -3,7 +3,7 @@
 from math import factorial
 
 import numpy as np
-from gym.spaces import Box, Discrete, MultiDiscrete, Space
+from gymnasium.spaces import Box, Discrete, MultiDiscrete, Space
 
 
 # Utilities

@@ -40,12 +40,12 @@ class Base(ABC):
             Task execution channels.
 
         """
-        obs = self.env.reset(tasks=tasks, ch_avail=ch_avail)
+        obs, _ = self.env.reset(tasks=tasks, ch_avail=ch_avail)
 
         done = False
         while not done:
             action = self.predict(obs)
-            obs, reward, done, info = self.env.step(action)
+            obs, reward, done, truncated, info = self.env.step(action)
 
         return self.env.node.sch
 

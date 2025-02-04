@@ -5,7 +5,8 @@ from copy import deepcopy
 from pathlib import Path
 
 import dill
-import pytorch_lightning as pl
+import lightning as L
+from lightning.pytorch.callbacks import TQDMProgressBar
 import torch
 from torch import nn, optim
 from torch.nn import functional
@@ -336,7 +337,7 @@ class TorchScheduler(BasePyTorch):
         self.model = self.model.to("cpu")
 
 
-class LitModel(pl.LightningModule):
+class LitModel(L.LightningModule):
     """
     Basic PyTorch-Lightning model.
 
@@ -415,7 +416,7 @@ class LitScheduler(BasePyTorch):
 
         # Note: "max_epochs" is specified in `learn_params` for consistency with `TorchScheduler`
         self.trainer_kwargs.update({"max_epochs": self.learn_params["max_epochs"]})
-        self.trainer = pl.Trainer(**self.trainer_kwargs)
+        self.trainer = L.Trainer(**self.trainer_kwargs)
         # TODO: store init kwargs, use for `reset`?
 
     @classmethod
@@ -489,7 +490,7 @@ class LitScheduler(BasePyTorch):
 
     def reset(self):
         super().reset()
-        self.trainer = pl.Trainer(**deepcopy(self.trainer_kwargs))
+        self.trainer = L.Trainer(**deepcopy(self.trainer_kwargs))
 
     def train(self, obs, act, rew, verbose=0):
         ret = reward_to_go(rew, gamma=1.0)
@@ -507,7 +508,7 @@ class LitScheduler(BasePyTorch):
             print("Training model...")
 
         for cb in self.trainer.callbacks:
-            if isinstance(cb, pl.callbacks.progress.tqdm_progress.TQDMProgressBar):
+            if isinstance(cb, TQDMProgressBar):
                 cb._refresh_rate = int(verbose >= 1)
 
         self.trainer.fit(self.model, dl_train, dl_val)

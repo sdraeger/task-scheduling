@@ -2,7 +2,7 @@
 
 from abc import ABC, abstractmethod
 
-from gym.spaces import Box
+from gymnasium.spaces import Box
 
 from task_scheduling.base import RandomGeneratorMixin
 

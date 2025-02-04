@@ -2,8 +2,8 @@ from functools import partial
 
 import numpy as np
 import pandas as pd
-from pytorch_lightning.callbacks import EarlyStopping
-from pytorch_lightning.utilities.seed import seed_everything
+from lightning.callbacks import EarlyStopping
+from lightning.utilities.seed import seed_everything
 from stable_baselines3.common.callbacks import StopTrainingOnNoModelImprovement
 from torch import nn
 

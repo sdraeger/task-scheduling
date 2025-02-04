@@ -6,8 +6,8 @@ from math import factorial
 from operator import attrgetter
 
 import numpy as np
-from gym import Env
-from gym.spaces import Box, Dict, MultiDiscrete
+from gymnasium import Env
+from gymnasium.spaces import Box, Dict, MultiDiscrete
 from tqdm import trange
 
 import task_scheduling.spaces as spaces_tasking
@@ -223,7 +223,7 @@ class Base(Env, ABC):
         """Update observation and action spaces."""
         pass
 
-    def reset(self, tasks=None, ch_avail=None, solve=False, rng=None):
+    def reset(self, tasks=None, ch_avail=None, solve=False, rng=None, seed=None):
         """
         Reset environment by re-initializing node object with new tasks/channels.
 
@@ -244,7 +244,7 @@ class Base(Env, ABC):
             Observation.
 
         """
-        rng = self.problem_gen._get_rng(rng)
+        rng = self.problem_gen._get_rng(seed if seed else rng)
         if tasks is None or ch_avail is None:  # generate new scheduling problem
             out = list(self.problem_gen(1, solve=solve, rng=rng))[0]
             if solve:
@@ -272,7 +272,7 @@ class Base(Env, ABC):
 
         self._update_spaces()
 
-        return self.obs()
+        return self.obs(), {}
 
     def step(self, action):
         """
@@ -305,7 +305,10 @@ class Base(Env, ABC):
 
         self._update_spaces()
 
-        return self.obs(), reward, done, {}
+        truncated = False
+        info = {}
+
+        return self.obs(), reward, done, truncated, info
 
     def render(self, mode="human"):
         if mode != "human":
